@@ -5,6 +5,8 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/elahe-dastan/reliable_UDP/request"
@@ -16,8 +18,7 @@ const BUFFERSIZE = 1015
 const Periodic = 6
 
 type Server struct {
-	IP       string
-	Port     int
+	Host       string
 	conn     *net.UDPConn
 	folder   string
 	ack      chan int
@@ -25,10 +26,9 @@ type Server struct {
 	periodic time.Duration
 }
 
-func New(ip string, port int, folder string) Server {
+func New(host string, folder string) Server {
 	return Server{
-		IP:       ip,
-		Port:     port,
+		Host: host,
 		folder:   folder,
 		ack:      make(chan int),
 		seq:      0,
@@ -37,12 +37,19 @@ func New(ip string, port int, folder string) Server {
 }
 
 func (s *Server) Up() {
-	addr := net.UDPAddr{
-		IP:   net.ParseIP(s.IP),
-		Port: s.Port,
+	host := strings.Split(s.Host, ":")
+	ip := host[0]
+	port, err := strconv.Atoi(host[1])
+	if err != nil {
+		fmt.Println(err)
 	}
 
-	_, err := net.ResolveUDPAddr("udp", addr.String())
+	addr := net.UDPAddr{
+		IP:   net.ParseIP(ip),
+		Port: port,
+	}
+
+	_, err = net.ResolveUDPAddr("udp", addr.String())
 	if err != nil {
 		fmt.Println(err)
 	}
