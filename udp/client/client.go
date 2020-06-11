@@ -18,6 +18,7 @@ type Client struct {
 	fileName   string
 	folder     string
 	newFile    *os.File
+	Fin        bool
 	received   int
 }
 
@@ -47,15 +48,11 @@ func (c *Client) Connect(addr chan string, name chan string) {
 
 		m := make([]byte, 2048)
 
+		c.Fin = false
 		c.received = 0
 
 		for {
-			fmt.Println("c.received")
-			fmt.Println(c.received)
-			fmt.Println("c.filesize")
-			fmt.Println(c.fileSize)
-
-			if int64(c.received) == c.fileSize {
+			if c.Fin {
 				break
 			}
 			_, err := cli.Read(m)
@@ -119,6 +116,9 @@ func (c *Client) protocol(res response.Response) {
 			}
 
 			c.received += received
+			if int64(c.received) == c.fileSize {
+				c.Fin = true
+			}
 		}
 
 		go c.sendAck(t.Seq)
