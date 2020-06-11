@@ -1,6 +1,9 @@
 package message
 
 const (
-	OK = "ok"
+	Get = "get"
+	Size = "size"
+	Ack = "ack"
+	FileName = "fileName"
 )
 
