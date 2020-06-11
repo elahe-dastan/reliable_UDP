@@ -17,6 +17,7 @@ type Server struct {
 	conn   *net.UDPConn
 	folder string
 	ack    chan int
+	seq   int
 }
 
 func New(ip string, port int, folder string) Server {
@@ -25,6 +26,7 @@ func New(ip string, port int, folder string) Server {
 		Port:   port,
 		folder: folder,
 		ack:make(chan int),
+		seq:0,
 	}
 }
 
@@ -98,69 +100,13 @@ func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
 
 	fmt.Println("Sending filename and filesize!")
 
-	seq := 0
+	fileSize := (&response.Size{Size: fileInfo.Size(), Seq: s.seq}).Marshal()
 
-	fileSize := (&response.Size{Size: fileInfo.Size(), Seq: seq}).Marshal()
+	s.Write(fileSize, remoteAddr)
 
-	_, err = s.conn.WriteToUDP([]byte(fileSize), remoteAddr)
-	if err != nil {
-		fmt.Println(err)
-	}
+	fileName := (&response.FileName{Name: fileInfo.Name(), Seq: s.seq}).Marshal()
 
-	for {
-		ticker := time.NewTicker(6 * time.Second)
-		b := false
-
-		select {
-		case <-ticker.C:
-			_, err = s.conn.WriteToUDP([]byte(fileSize), remoteAddr)
-			if err != nil {
-				fmt.Println(err)
-			}
-		case ack := <-s.ack:
-			if ack == seq {
-				seq += 1
-				seq %= 2
-				b = true
-				break
-			}
-		}
-
-		if b {
-			break
-		}
-	}
-
-	fileName := (&message.FileName{Name: fileInfo.Name(), Seq: seq}).Marshal()
-
-	_, err = s.conn.WriteToUDP([]byte(fileName), s.SWAddr)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	for {
-		ticker := time.NewTicker(6 * time.Second)
-		b := false
-
-		select {
-		case <-ticker.C:
-			_, err = s.conn.WriteToUDP([]byte(fileName), s.SWAddr)
-			if err != nil {
-				fmt.Println(err)
-			}
-		case ack := <-s.SWAck:
-			if ack == seq {
-				seq += 1
-				seq %= 2
-				b = true
-				break
-			}
-		}
-
-		if b {
-			break
-		}
-	}
+	s.Write(fileName, remoteAddr)
 
 	sendBuffer := make([]byte, BUFFERSIZE-9)
 
@@ -175,40 +121,42 @@ func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
 		sendBuff := sendBuffer[0:read]
 		buffer := (&message.Segment{
 			Part: sendBuff,
-			Seq:  seq,
+			Seq:  s.seq,
 		}).Marshal()
 
-		send := []byte(buffer)
-
-		_, err = s.conn.WriteToUDP(send, s.SWAddr)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		for {
-			ticker := time.NewTicker(6 * time.Second)
-			b := false
-
-			select {
-			case <-ticker.C:
-				_, err = s.conn.WriteToUDP(send, s.SWAddr)
-				if err != nil {
-					fmt.Println(err)
-				}
-			case ack := <-s.SWAck:
-				if ack == seq {
-					seq += 1
-					seq %= 2
-					b = true
-					break
-				}
-			}
-
-			if b {
-				break
-			}
-		}
+		s.Write(buffer, remoteAddr)
 	}
 
 	fmt.Println("File has been sent, closing connection!")
+}
+
+func (s *Server) Write(message string, remoteAddr *net.UDPAddr) {
+	_, err := s.conn.WriteToUDP([]byte(message), remoteAddr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for {
+		ticker := time.NewTicker(6 * time.Second)
+		b := false
+
+		select {
+		case <-ticker.C:
+			_, err = s.conn.WriteToUDP([]byte(message), remoteAddr)
+			if err != nil {
+				fmt.Println(err)
+			}
+		case ack := <-s.ack:
+			if ack == s.seq {
+				s.seq += 1
+				s.seq %= 2
+				b = true
+				break
+			}
+		}
+
+		if b {
+			break
+		}
+	}
 }
