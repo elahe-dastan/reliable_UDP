@@ -1,6 +1,8 @@
 package response
 
 import (
+	"encoding/base64"
+	"fmt"
 	"reliable_UDP/message"
 	"strconv"
 	"strings"
@@ -20,6 +22,11 @@ type FileName struct{
 	Seq int
 }
 
+type Segment struct {
+	Part []byte
+	Seq int
+}
+
 func (s *Size) Marshal() string {
 	fileSize := message.Size + "," + strconv.Itoa(s.Seq) + "," +
 		strconv.FormatInt(s.Size, 10) + "\n"
@@ -31,6 +38,10 @@ func (n *FileName) Marshal() string {
 	fileName := message.FileName + "," + strconv.Itoa(n.Seq) + "," + n.Name + "\n"
 
 	return fileName
+}
+
+func (s *Segment) Marshal() string {
+	return fmt.Sprintf("%s,%d,%s\n", message.Segment, s.Seq, base64.StdEncoding.EncodeToString(s.Part))
 }
 
 func Unmarshal(s string) Response {
@@ -53,6 +64,14 @@ func Unmarshal(s string) Response {
 
 		return &FileName{
 			Name: name,
+			Seq:  seq,
+		}
+	case message.Segment:
+		seq,_ := strconv.Atoi(t[1])
+		part, _ := base64.StdEncoding.DecodeString(t[2])
+
+		return &Segment{
+			Part: part,
 			Seq:  seq,
 		}
 	}

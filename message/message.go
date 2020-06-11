@@ -5,5 +5,6 @@ const (
 	Size = "size"
 	Ack = "ack"
 	FileName = "fileName"
+	Segment = "segment"
 )
 

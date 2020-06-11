@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const BUFFERSIZE = 1024
+
 type Server struct {
 	IP     string
 	Port   int
@@ -119,7 +121,7 @@ func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
 		}
 
 		sendBuff := sendBuffer[0:read]
-		buffer := (&message.Segment{
+		buffer := (&response.Segment{
 			Part: sendBuff,
 			Seq:  s.seq,
 		}).Marshal()
