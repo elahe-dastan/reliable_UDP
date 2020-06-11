@@ -35,4 +35,6 @@ func Unmarshal(req string) Request {
 	case message.Get:
 		return &Get{Name:t[1]}
 	}
+
+	return nil
 }

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"P2P/message"
 	"fmt"
 	"io"
 	"net"

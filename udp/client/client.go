@@ -1,9 +1,10 @@
 package client
 
 import (
-	"P2P/message"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"reliable_UDP/request"
 	"reliable_UDP/response"
 	"strings"
@@ -16,18 +17,22 @@ type Client struct {
 	FileName   string
 	seq        int
 	fileSize  int64
+	fileName  string
+	folder    string
+	newFile   *os.File
 }
 
-func New(ip string, port int, name string) Client {
+func New(ip string, port int, name string, folder string) Client {
 	return Client{
 		ServerIP:   ip,
 		ServerPort: port,
 		FileName: name,
 		seq:0,
+		folder:folder,
 	}
 }
 
-func (c *Client) Up() {
+func (c *Client) Connect() {
 	addr := net.UDPAddr {
 		IP:   net.ParseIP(c.ServerIP),
 		Port: c.ServerPort,
@@ -74,11 +79,38 @@ func (c *Client) protocol(res response.Response, remoteAddr *net.UDPAddr) {
 	case *response.Size:
 		fmt.Println("recieved size the seq is")
 		fmt.Println(t.Seq)
-		if t.Seq == c.seq {
-			c.seq += 1
-			c.seq %= 2
-
+		if c.alternateSeq(t.Seq) {
 			c.fileSize = t.Size
+		}
+
+		go c.sendAck(t.Seq)
+
+	case *response.FileName:
+		fmt.Println("recieved file name the seq is")
+		fmt.Println(t.Seq)
+		if c.alternateSeq(t.Seq) {
+			c.fileName = t.Name
+
+			newFile, err := os.Create(filepath.Join(c.folder, filepath.Base("yep"+c.fileName)))
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			c.newFile = newFile
+		}
+
+		go c.sendAck(t.Seq)
+
+	case *response.Segment:
+		fmt.Println("recieved segment the seq is")
+		fmt.Println(t.Seq)
+		if c.alternateSeq(t.Seq) {
+			segment := t.Part
+
+			_, err := c.newFile.Write(segment)
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 
 		go c.sendAck(t.Seq)
@@ -90,4 +122,15 @@ func (c *Client) sendAck(seq int) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func (c *Client) alternateSeq(seq int) bool {
+	if seq == c.seq {
+		c.seq += 1
+		c.seq %= 2
+
+		return true
+	}
+
+	return false
 }
