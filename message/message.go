@@ -1,10 +1,9 @@
 package message
 
 const (
-	Get = "get"
-	Size = "size"
-	Ack = "ack"
+	Get      = "get"
+	Size     = "size"
+	Ack      = "ack"
 	FileName = "fileName"
-	Segment = "segment"
+	Segment  = "segment"
 )
-

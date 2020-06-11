@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-const BUFFERSIZE = 1024
+// 1024 - 9
+const BUFFERSIZE = 1015
 
 type Server struct {
 	IP     string
@@ -18,7 +19,8 @@ type Server struct {
 	conn   *net.UDPConn
 	folder string
 	ack    chan int
-	seq   int
+	seq    int
+	periodic time.Duration
 }
 
 func New(ip string, port int, folder string) Server {
@@ -26,13 +28,14 @@ func New(ip string, port int, folder string) Server {
 		IP:     ip,
 		Port:   port,
 		folder: folder,
-		ack:make(chan int),
-		seq:0,
+		ack:    make(chan int),
+		seq:    0,
+		periodic: 6 * time.Second,
 	}
 }
 
 func (s *Server) Up() {
-	addr := net.UDPAddr {
+	addr := net.UDPAddr{
 		IP:   net.ParseIP(s.IP),
 		Port: s.Port,
 	}
@@ -109,7 +112,7 @@ func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
 
 	s.Write(fileName, remoteAddr)
 
-	sendBuffer := make([]byte, BUFFERSIZE-9)
+	sendBuffer := make([]byte, BUFFERSIZE)
 
 	fmt.Println("Start sending file")
 
@@ -138,7 +141,7 @@ func (s *Server) Write(message string, remoteAddr *net.UDPAddr) {
 	}
 
 	for {
-		ticker := time.NewTicker(6 * time.Second)
+		ticker := time.NewTicker(s.periodic)
 		b := false
 
 		select {
@@ -157,6 +160,7 @@ func (s *Server) Write(message string, remoteAddr *net.UDPAddr) {
 		}
 
 		if b {
+
 			break
 		}
 	}

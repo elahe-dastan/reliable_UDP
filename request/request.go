@@ -23,7 +23,6 @@ func (a *Acknowledgment) Marshal() string {
 	return fmt.Sprintf("%s,%d\n", message.Ack, a.Seq)
 }
 
-
 func (g *Get) Marshal() string {
 	return fmt.Sprintf("%s,%s\n", message.Get, g.Name)
 }
@@ -34,11 +33,11 @@ func Unmarshal(req string) Request {
 
 	switch t[0] {
 	case message.Get:
-		return &Get{Name:t[1]}
+		return &Get{Name: t[1]}
 	case message.Ack:
-		seq,_ := strconv.Atoi(t[1])
+		seq, _ := strconv.Atoi(t[1])
 
-		return &Acknowledgment{Seq:seq}
+		return &Acknowledgment{Seq: seq}
 	}
 
 	return nil

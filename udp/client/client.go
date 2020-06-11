@@ -13,27 +13,27 @@ import (
 type Client struct {
 	ServerIP   string
 	ServerPort int
-	conn    *net.UDPConn
+	conn       *net.UDPConn
 	FileName   string
 	seq        int
-	fileSize  int64
-	fileName  string
-	folder    string
-	newFile   *os.File
+	fileSize   int64
+	fileName   string
+	folder     string
+	newFile    *os.File
 }
 
 func New(ip string, port int, name string, folder string) Client {
 	return Client{
 		ServerIP:   ip,
 		ServerPort: port,
-		FileName: name,
-		seq:0,
-		folder:folder,
+		FileName:   name,
+		seq:        0,
+		folder:     folder,
 	}
 }
 
 func (c *Client) Connect() {
-	addr := net.UDPAddr {
+	addr := net.UDPAddr{
 		IP:   net.ParseIP(c.ServerIP),
 		Port: c.ServerPort,
 	}
@@ -46,7 +46,7 @@ func (c *Client) Connect() {
 
 	c.conn = cli
 
-	_, err = cli.Write([]byte((&request.Get{Name:c.FileName}).Marshal()))
+	_, err = cli.Write([]byte((&request.Get{Name: c.FileName}).Marshal()))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -70,15 +70,16 @@ func (c *Client) Connect() {
 
 		res := response.Unmarshal(r)
 
-		c.protocol(res, remoteAddr)
+		c.protocol(res)
 	}
 }
 
-func (c *Client) protocol(res response.Response, remoteAddr *net.UDPAddr) {
+func (c *Client) protocol(res response.Response) {
 	switch t := res.(type) {
 	case *response.Size:
-		fmt.Println("recieved size the seq is")
+		fmt.Println("received size the seq is")
 		fmt.Println(t.Seq)
+
 		if c.alternateSeq(t.Seq) {
 			c.fileSize = t.Size
 		}
@@ -86,8 +87,9 @@ func (c *Client) protocol(res response.Response, remoteAddr *net.UDPAddr) {
 		go c.sendAck(t.Seq)
 
 	case *response.FileName:
-		fmt.Println("recieved file name the seq is")
+		fmt.Println("received file name the seq is")
 		fmt.Println(t.Seq)
+
 		if c.alternateSeq(t.Seq) {
 			c.fileName = t.Name
 
@@ -102,8 +104,9 @@ func (c *Client) protocol(res response.Response, remoteAddr *net.UDPAddr) {
 		go c.sendAck(t.Seq)
 
 	case *response.Segment:
-		fmt.Println("recieved segment the seq is")
+		fmt.Println("received segment the seq is")
 		fmt.Println(t.Seq)
+
 		if c.alternateSeq(t.Seq) {
 			segment := t.Part
 
@@ -118,7 +121,7 @@ func (c *Client) protocol(res response.Response, remoteAddr *net.UDPAddr) {
 }
 
 func (c *Client) sendAck(seq int) {
-	_, err := c.conn.Write([]byte((&request.Acknowledgment{Seq:seq}).Marshal()))
+	_, err := c.conn.Write([]byte((&request.Acknowledgment{Seq: seq}).Marshal()))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -126,7 +129,7 @@ func (c *Client) sendAck(seq int) {
 
 func (c *Client) alternateSeq(seq int) bool {
 	if seq == c.seq {
-		c.seq += 1
+		c.seq++
 		c.seq %= 2
 
 		return true
