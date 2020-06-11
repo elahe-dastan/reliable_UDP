@@ -56,7 +56,7 @@ func (c *Client) Connect() {
 	m := make([]byte, 2048)
 
 	for {
-		_, remoteAddr, err := cli.ReadFromUDP(m)
+		_, _, err := cli.ReadFromUDP(m)
 		if err != nil {
 			fmt.Println(err)
 			return
