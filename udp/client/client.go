@@ -27,8 +27,8 @@ func New(folder string) Client {
 	}
 }
 
-func (c *Client) Connect(addr string, name string) {
-	cli, err := net.Dial("udp4", addr)
+func (c *Client) Connect(addr chan string, name chan string) {
+	cli, err := net.Dial("udp4", <-addr)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -36,7 +36,7 @@ func (c *Client) Connect(addr string, name string) {
 
 	c.conn = cli
 
-	_, err = cli.Write([]byte((&request.Get{Name: name}).Marshal()))
+	_, err = cli.Write([]byte((&request.Get{Name: <-name}).Marshal()))
 	if err != nil {
 		fmt.Println(err)
 	}
