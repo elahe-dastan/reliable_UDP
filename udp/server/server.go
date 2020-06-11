@@ -12,25 +12,26 @@ import (
 
 // 1024 - 9
 const BUFFERSIZE = 1015
+const Periodic = 6
 
 type Server struct {
-	IP     string
-	Port   int
-	conn   *net.UDPConn
-	folder string
-	ack    chan int
-	seq    int
+	IP       string
+	Port     int
+	conn     *net.UDPConn
+	folder   string
+	ack      chan int
+	seq      int
 	periodic time.Duration
 }
 
 func New(ip string, port int, folder string) Server {
 	return Server{
-		IP:     ip,
-		Port:   port,
-		folder: folder,
-		ack:    make(chan int),
-		seq:    0,
-		periodic: 6 * time.Second,
+		IP:       ip,
+		Port:     port,
+		folder:   folder,
+		ack:      make(chan int),
+		seq:      0,
+		periodic: Periodic * time.Second,
 	}
 }
 
@@ -82,7 +83,7 @@ func (s *Server) protocol(req request.Request, remoteAddr *net.UDPAddr) {
 		go s.send(t.Name, remoteAddr)
 	case *request.Acknowledgment:
 		s.ack <- t.Seq
-		fmt.Println("Recieved ack and the seq is")
+		fmt.Println("Received ack and the seq is")
 		fmt.Println(t.Seq)
 	}
 }
@@ -152,15 +153,15 @@ func (s *Server) Write(message string, remoteAddr *net.UDPAddr) {
 			}
 		case ack := <-s.ack:
 			if ack == s.seq {
-				s.seq += 1
+				s.seq ++
 				s.seq %= 2
 				b = true
+
 				break
 			}
 		}
 
 		if b {
-
 			break
 		}
 	}
