@@ -5,9 +5,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reliable_UDP/request"
 	"reliable_UDP/response"
 	"strings"
+
+	"github.com/elahe-dastan/reliable_UDP/request"
 )
 
 type Client struct {

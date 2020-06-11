@@ -5,9 +5,10 @@ import (
 	"io"
 	"net"
 	"os"
-	"reliable_UDP/request"
-	"reliable_UDP/response"
 	"time"
+
+	"github.com/elahe-dastan/reliable_UDP/request"
+	"github.com/elahe-dastan/reliable_UDP/response"
 )
 
 // 1024 - 9.

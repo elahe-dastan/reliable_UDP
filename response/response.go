@@ -3,7 +3,7 @@ package response
 import (
 	"encoding/base64"
 	"fmt"
-	"reliable_UDP/message"
+	"github.com/elahe-dastan/reliable_UDP/message"
 	"strconv"
 	"strings"
 )
