@@ -12,7 +12,7 @@ import (
 )
 
 type Client struct {
-	conn       *net.UDPConn
+	conn       net.Conn
 	seq        int
 	fileSize   int64
 	fileName   string
@@ -27,13 +27,8 @@ func New(folder string) Client {
 	}
 }
 
-func (c *Client) Connect(ip string, port int, name string,) {
-	addr := net.UDPAddr{
-		IP:   net.ParseIP(ip),
-		Port: port,
-	}
-
-	cli, err := net.DialUDP("udp4", nil, &addr)
+func (c *Client) Connect(addr string, name string) {
+	cli, err := net.Dial("udp4", addr)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -51,7 +46,7 @@ func (c *Client) Connect(ip string, port int, name string,) {
 	m := make([]byte, 2048)
 
 	for {
-		_, _, err := cli.ReadFromUDP(m)
+		_, err := cli.Read(m)
 		if err != nil {
 			fmt.Println(err)
 			return
