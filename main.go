@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"reliable_UDP/udp/client"
-	"reliable_UDP/udp/server"
 	"strconv"
 	"strings"
+
+	"github.com/elahe-dastan/reliable_UDP/udp/client"
+	"github.com/elahe-dastan/reliable_UDP/udp/server"
 )
 
 func main() {
