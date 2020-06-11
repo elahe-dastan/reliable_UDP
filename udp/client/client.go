@@ -18,6 +18,7 @@ type Client struct {
 	fileName   string
 	folder     string
 	newFile    *os.File
+	received   int
 }
 
 func New(folder string) Client {
@@ -28,39 +29,46 @@ func New(folder string) Client {
 }
 
 func (c *Client) Connect(addr chan string, name chan string) {
-	cli, err := net.Dial("udp4", <-addr)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	c.conn = cli
-
-	_, err = cli.Write([]byte((&request.Get{Name: <-name}).Marshal()))
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Printf("The UDP server is %s\n", cli.RemoteAddr().String())
-
-	m := make([]byte, 2048)
-
 	for {
-		_, err := cli.Read(m)
+		cli, err := net.Dial("udp4", <-addr)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		r := strings.Split(string(m), "\n")[0]
+		c.conn = cli
 
-		r = strings.TrimSuffix(r, "\n")
+		_, err = cli.Write([]byte((&request.Get{Name: <-name}).Marshal()))
+		if err != nil {
+			fmt.Println(err)
+		}
 
-		fmt.Println(r)
+		fmt.Printf("The UDP server is %s\n", cli.RemoteAddr().String())
 
-		res := response.Unmarshal(r)
+		m := make([]byte, 2048)
 
-		c.protocol(res)
+		c.received = 0
+
+		for {
+			if int64(c.received) == c.fileSize {
+				break
+			}
+			_, err := cli.Read(m)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			r := strings.Split(string(m), "\n")[0]
+
+			r = strings.TrimSuffix(r, "\n")
+
+			fmt.Println(r)
+
+			res := response.Unmarshal(r)
+
+			c.protocol(res)
+		}
 	}
 }
 
@@ -100,10 +108,12 @@ func (c *Client) protocol(res response.Response) {
 		if c.alternateSeq(t.Seq) {
 			segment := t.Part
 
-			_, err := c.newFile.Write(segment)
+			received, err := c.newFile.Write(segment)
 			if err != nil {
 				fmt.Println(err)
 			}
+
+			c.received += received
 		}
 
 		go c.sendAck(t.Seq)

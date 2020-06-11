@@ -71,10 +71,6 @@ func (s *Server) Up() {
 			return
 		}
 
-		//r := strings.Split(string(m), "\n")[0]
-		//
-		//r = strings.TrimSuffix(r, "\n")
-
 		r := string(m)
 
 		fmt.Println(r)
