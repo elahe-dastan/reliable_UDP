@@ -1,8 +1,10 @@
 package client
 
 import (
+	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"reliable_UDP/message"
 	"reliable_UDP/response"
 	"strings"
@@ -27,12 +29,7 @@ func (c *Client) Up() {
 		Port: c.Port,
 	}
 
-	_, err := net.ResolveUDPAddr("udp", addr.String())
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	cli, err := net.ListenUDP("udp", &addr)
+	cli, err := net.DialUDP("udp4", nil, &addr)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -40,10 +37,13 @@ func (c *Client) Up() {
 
 	c.conn = cli
 
+	fmt.Printf("The UDP server is %s\n", c.conn.RemoteAddr().String())
+	defer c.conn.Close()
+
 	m := make([]byte, 2048)
 
 	for {
-		_, remoteAddr, err := cli.ReadFromUDP(m)
+		_, remoteAddr, err := c.conn.ReadFromUDP(m)
 		if err != nil {
 			fmt.Println(err)
 			return
