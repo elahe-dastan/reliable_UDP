@@ -83,7 +83,7 @@ func (s *Server) protocol(req request.Request, remoteAddr *net.UDPAddr) {
 		go s.send(t.Name, remoteAddr)
 	case *request.Acknowledgment:
 		s.ack <- t.Seq
-		
+
 		fmt.Println("Received ack and the seq is")
 		fmt.Println(t.Seq)
 	}
