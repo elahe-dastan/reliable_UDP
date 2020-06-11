@@ -3,9 +3,10 @@ package response
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/elahe-dastan/reliable_UDP/message"
 	"strconv"
 	"strings"
+
+	"github.com/elahe-dastan/reliable_UDP/message"
 )
 
 type Response interface {
