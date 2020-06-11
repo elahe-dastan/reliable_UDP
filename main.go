@@ -27,10 +27,10 @@ func main() {
 	}
 
 	if a == 1 {
-		c := client.New("127.0.0.1", 1995, "thesis.pdf", "/home/raha/Downloads")
+		c := client.New( "/home/raha/Downloads")
 		c.Connect()
 	} else {
-		s := server.New("127.0.0.1", 1995, "/home/raha/Downloads")
+		s := server.New("127.0.0.1:1995", "/home/raha/Downloads")
 		s.Up()
 	}
 }

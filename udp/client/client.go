@@ -50,9 +50,9 @@ func (c *Client) Connect(addr chan string, name chan string) {
 		c.received = 0
 
 		for {
-			if int64(c.received) == c.fileSize {
-				break
-			}
+			//if int64(c.received) == c.fileSize {
+			//	break
+			//}
 			_, err := cli.Read(m)
 			if err != nil {
 				fmt.Println(err)
