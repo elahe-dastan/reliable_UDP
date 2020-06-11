@@ -75,5 +75,7 @@ func Unmarshal(s string) Response {
 			Seq:  seq,
 		}
 	}
+
+	return nil
 }
 

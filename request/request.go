@@ -3,6 +3,7 @@ package request
 import (
 	"fmt"
 	"reliable_UDP/message"
+	"strconv"
 	"strings"
 )
 
@@ -34,6 +35,10 @@ func Unmarshal(req string) Request {
 	switch t[0] {
 	case message.Get:
 		return &Get{Name:t[1]}
+	case message.Ack:
+		seq,_ := strconv.Atoi(t[1])
+
+		return &Acknowledgment{Seq:seq}
 	}
 
 	return nil
