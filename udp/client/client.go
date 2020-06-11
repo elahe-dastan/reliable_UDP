@@ -5,8 +5,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reliable_UDP/response"
 	"strings"
+
+	"github.com/elahe-dastan/reliable_UDP/response"
 
 	"github.com/elahe-dastan/reliable_UDP/request"
 )
