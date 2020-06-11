@@ -7,16 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/elahe-dastan/reliable_UDP/response"
-
 	"github.com/elahe-dastan/reliable_UDP/request"
+	"github.com/elahe-dastan/reliable_UDP/response"
 )
 
 type Client struct {
-	ServerIP   string
-	ServerPort int
 	conn       *net.UDPConn
-	FileName   string
 	seq        int
 	fileSize   int64
 	fileName   string
@@ -24,20 +20,17 @@ type Client struct {
 	newFile    *os.File
 }
 
-func New(ip string, port int, name string, folder string) Client {
+func New(folder string) Client {
 	return Client{
-		ServerIP:   ip,
-		ServerPort: port,
-		FileName:   name,
 		seq:        0,
 		folder:     folder,
 	}
 }
 
-func (c *Client) Connect() {
+func (c *Client) Connect(ip string, port int, name string,) {
 	addr := net.UDPAddr{
-		IP:   net.ParseIP(c.ServerIP),
-		Port: c.ServerPort,
+		IP:   net.ParseIP(ip),
+		Port: port,
 	}
 
 	cli, err := net.DialUDP("udp4", nil, &addr)
@@ -48,7 +41,7 @@ func (c *Client) Connect() {
 
 	c.conn = cli
 
-	_, err = cli.Write([]byte((&request.Get{Name: c.FileName}).Marshal()))
+	_, err = cli.Write([]byte((&request.Get{Name: name}).Marshal()))
 	if err != nil {
 		fmt.Println(err)
 	}
