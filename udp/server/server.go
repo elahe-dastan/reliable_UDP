@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// 1024 - 9
+// 1024 - 9.
 const BUFFERSIZE = 1015
 const Periodic = 6
 
