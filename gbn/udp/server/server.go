@@ -36,7 +36,7 @@ func New(host string, folder string) Server {
 		folder:     folder,
 		base:       -1,
 		nextSeq:    0,
-		windowSize: 2,
+		windowSize: 3,
 		periodic:   Periodic * time.Second,
 		window:     make(map[int]string),
 		ack:        make(chan int),
