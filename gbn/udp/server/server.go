@@ -147,20 +147,26 @@ func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
 	}
 
 	s.fin = true
-
 	fmt.Println("File has been sent, closing connection!")
 }
 
 func (s *Server) Write(message string, remoteAddr *net.UDPAddr) {
-	if (s.nextSeq+1)%s.windowSize != s.base {
-		s.window[s.nextSeq] = message
-		_, err := s.conn.WriteToUDP([]byte(message), remoteAddr)
-		if err != nil {
-			fmt.Println(err)
-		}
+	for {
+		if (s.nextSeq+1)%s.windowSize != s.base {
+			s.window[s.nextSeq] = message
+			_, err := s.conn.WriteToUDP([]byte(message), remoteAddr)
+			if err != nil {
+				fmt.Println(err)
+			}
 
-		s.nextSeq++
-		s.nextSeq %= s.windowSize
+			s.nextSeq++
+			if s.base == -1 {
+				s.base++
+			}
+			s.nextSeq %= s.windowSize
+
+			break
+		}
 	}
 }
 
@@ -170,9 +176,17 @@ func (s *Server) acknowledgment(remoteAddr *net.UDPAddr) {
 
 		select {
 		case <-ticker.C:
-			_, err := s.conn.WriteToUDP([]byte(s.window[s.base]), remoteAddr)
-			if err != nil {
-				fmt.Println(err)
+			index := s.base
+			for i := 0;i < s.windowSize; i++ {
+				index += i
+				index %= s.windowSize
+				if index == s.nextSeq {
+					break
+				}
+				_, err := s.conn.WriteToUDP([]byte(s.window[index]), remoteAddr)
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
 		case ack := <-s.ack:
 			s.base = ack
@@ -182,7 +196,7 @@ func (s *Server) acknowledgment(remoteAddr *net.UDPAddr) {
 			break
 		}
 
-		if s.fin {
+		if s.fin && s.base == s.nextSeq {
 			break
 		}
 	}
