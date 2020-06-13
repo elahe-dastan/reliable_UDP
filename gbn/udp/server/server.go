@@ -19,24 +19,28 @@ const Periodic = 6
 
 type Server struct {
 	Host       string
-	conn     *net.UDPConn
-	folder   string
-	ack      chan int
-	base      int
-	nextSeq   int
+	conn       *net.UDPConn
+	folder     string
+	base       int
+	nextSeq    int
 	windowSize int
-	periodic time.Duration
+	periodic   time.Duration
+	window     map[int]string
+	ack        chan int
+	fin        bool
 }
 
 func New(host string, folder string) Server {
 	return Server{
-		Host: host,
-		folder:   folder,
-		ack:      make(chan int),
-		base:      -1,
-		nextSeq:0,
-		windowSize:2,
-		periodic: Periodic * time.Second,
+		Host:       host,
+		folder:     folder,
+		base:       -1,
+		nextSeq:    0,
+		windowSize: 2,
+		periodic:   Periodic * time.Second,
+		window:     make(map[int]string),
+		ack:        make(chan int),
+		fin:        false,
 	}
 }
 
@@ -89,6 +93,7 @@ func (s *Server) protocol(req request.Request, remoteAddr *net.UDPAddr) {
 	switch t := req.(type) {
 	case *request.Get:
 		go s.send(t.Name, remoteAddr)
+		go s.acknowledgment(remoteAddr)
 	case *request.Acknowledgment:
 		s.ack <- t.Seq
 
@@ -118,7 +123,7 @@ func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
 
 	s.Write(fileSize, remoteAddr)
 
-	fileName := (&response.FileName{Name: fileInfo.Name(), Seq: s.seq}).Marshal()
+	fileName := (&response.FileName{Name: fileInfo.Name(), Seq: s.nextSeq}).Marshal()
 
 	s.Write(fileName, remoteAddr)
 
@@ -135,21 +140,50 @@ func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
 		sendBuff := sendBuffer[0:read]
 		buffer := (&response.Segment{
 			Part: sendBuff,
-			Seq:  s.seq,
+			Seq:  s.nextSeq,
 		}).Marshal()
 
 		s.Write(buffer, remoteAddr)
 	}
 
+	s.fin = true
+
 	fmt.Println("File has been sent, closing connection!")
 }
 
 func (s *Server) Write(message string, remoteAddr *net.UDPAddr) {
-	_, err := s.conn.WriteToUDP([]byte(message), remoteAddr)
-	if err != nil {
-		fmt.Println(err)
-	}
+	if (s.nextSeq+1)%s.windowSize != s.base {
+		s.window[s.nextSeq] = message
+		_, err := s.conn.WriteToUDP([]byte(message), remoteAddr)
+		if err != nil {
+			fmt.Println(err)
+		}
 
-	s.nextSeq++
-	s.nextSeq %= s.windowSize
+		s.nextSeq++
+		s.nextSeq %= s.windowSize
+	}
+}
+
+func (s *Server) acknowledgment(remoteAddr *net.UDPAddr) {
+	for {
+		ticker := time.NewTicker(s.periodic)
+
+		select {
+		case <-ticker.C:
+			_, err := s.conn.WriteToUDP([]byte(s.window[s.base]), remoteAddr)
+			if err != nil {
+				fmt.Println(err)
+			}
+		case ack := <-s.ack:
+			s.base = ack
+			s.base++
+			s.base %= s.windowSize
+
+			break
+		}
+
+		if s.fin {
+			break
+		}
+	}
 }
