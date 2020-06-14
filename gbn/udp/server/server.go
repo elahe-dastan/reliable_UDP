@@ -73,6 +73,7 @@ func (s *Server) Up() {
 	m := make([]byte, 2048)
 
 	for {
+		fmt.Println("reading")
 		_, remoteAddr, err := ser.ReadFromUDP(m)
 		if err != nil {
 			fmt.Println(err)
@@ -160,10 +161,10 @@ func (s *Server) Write(message string, remoteAddr *net.UDPAddr) {
 				fmt.Println(err)
 			}
 
-			s.nextSeq++
 			if s.base == -1 {
-				s.base++
+				s.base = s.nextSeq
 			}
+			s.nextSeq++
 			s.nextSeq %= s.windowSize
 
 			break
@@ -193,12 +194,16 @@ func (s *Server) acknowledgment(remoteAddr *net.UDPAddr) {
 			s.base = ack
 			s.base++
 			s.base %= s.windowSize
+			if s.base == s.nextSeq {
+				s.base = -1
+			}
 
 			break
 		}
 
-		if s.fin {
-			break
-		}
+		//if s.fin && s.base == -1 {
+		//	fmt.Println("ack break")
+		//	break
+		//}
 	}
 }

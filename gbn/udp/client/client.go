@@ -42,6 +42,7 @@ func (c *Client) Connect(addr chan string, name chan string) {
 		c.conn = cli
 
 		_, err = cli.Write([]byte((&request.Get{Name: <-name}).Marshal()))
+		fmt.Println("wrote")
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -81,6 +82,7 @@ func (c *Client) protocol(res response.Response) {
 	case *response.Size:
 		fmt.Println("received size the seq is")
 		fmt.Println(t.Seq)
+		c.seq = t.Seq
 
 		go c.sendAck(c.seq)
 
