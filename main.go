@@ -32,7 +32,7 @@ func main() {
 		name := make(chan string)
 		go c.Connect(addr, name)
 		addr <- "127.0.0.1:1995"
-		name <- "HooshMohasebati.pdf"
+		name <- "thesis.pdf"
 		select {}
 	} else {
 		s := server.New("127.0.0.1:1995", "/home/raha/Downloads")

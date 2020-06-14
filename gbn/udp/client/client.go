@@ -82,15 +82,18 @@ func (c *Client) protocol(res response.Response) {
 		fmt.Println("received size the seq is")
 		fmt.Println(t.Seq)
 
+		go c.sendAck(c.seq)
+
 		if c.seqPlusOne(t.Seq) {
 			c.fileSize = t.Size
 		}
 
-		go c.sendAck(c.seq)
 
 	case *response.FileName:
 		fmt.Println("received file name the seq is")
 		fmt.Println(t.Seq)
+
+		go c.sendAck(c.seq)
 
 		if c.seqPlusOne(t.Seq) {
 			c.fileName = t.Name
@@ -103,11 +106,12 @@ func (c *Client) protocol(res response.Response) {
 			c.newFile = newFile
 		}
 
-		go c.sendAck(c.seq)
 
 	case *response.Segment:
 		fmt.Println("received segment the seq is")
 		fmt.Println(t.Seq)
+
+		go c.sendAck(c.seq)
 
 		if c.seqPlusOne(t.Seq) {
 			segment := t.Part
@@ -123,7 +127,6 @@ func (c *Client) protocol(res response.Response) {
 			}
 		}
 
-		go c.sendAck(t.Seq)
 	}
 }
 

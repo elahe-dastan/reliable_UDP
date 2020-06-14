@@ -15,7 +15,7 @@ import (
 
 // 1024 - 9.
 const BUFFERSIZE = 1015
-const Periodic = 6
+const Periodic = 10
 
 type Server struct {
 	Host       string
@@ -52,7 +52,7 @@ func (s *Server) Up() {
 		fmt.Println(err)
 	}
 
-	addr := net.UDPAddr{
+	addr := net.UDPAddr {
 		IP:   net.ParseIP(ip),
 		Port: port,
 	}
@@ -134,6 +134,7 @@ func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
 	for {
 		read, err := file.Read(sendBuffer)
 		if err == io.EOF {
+			fmt.Println("break")
 			break
 		}
 
@@ -196,7 +197,7 @@ func (s *Server) acknowledgment(remoteAddr *net.UDPAddr) {
 			break
 		}
 
-		if s.fin && s.base == s.nextSeq {
+		if s.fin {
 			break
 		}
 	}
