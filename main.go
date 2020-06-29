@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/elahe-dastan/reliable_UDP/gbn/udp/client"
-	"github.com/elahe-dastan/reliable_UDP/gbn/udp/server"
+	"github.com/elahe-dastan/reliable_UDP/sr/client"
+	"github.com/elahe-dastan/reliable_UDP/sr/server"
 )
 
 func main() {
