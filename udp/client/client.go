@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -35,6 +36,51 @@ func New(folder string) Client {
 		sndBuff:    make([]byte, 0),
 		rcvBuff:    make([]byte, 0),
 		ack:        make(chan int),
+	}
+}
+
+func (s *Server) Up() {
+	host := strings.Split(s.Host, ":")
+	ip := host[0]
+	port, err := strconv.Atoi(host[1])
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	addr := net.UDPAddr{
+		IP:   net.ParseIP(ip),
+		Port: port,
+	}
+
+	_, err = net.ResolveUDPAddr("udp", addr.String())
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	ser, err := net.ListenUDP("udp", &addr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	s.conn = ser
+
+	m := make([]byte, 2048)
+
+	for {
+		_, remoteAddr, err := ser.ReadFromUDP(m)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		r := string(m)
+
+		fmt.Println(r)
+
+		req := request.Unmarshal(r)
+
+		s.protocol(req, remoteAddr)
 	}
 }
 
