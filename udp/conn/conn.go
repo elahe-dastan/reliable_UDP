@@ -1,9 +1,8 @@
-package client
+package conn
 
 import (
 	"fmt"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,13 +12,14 @@ import (
 	"github.com/elahe-dastan/reliable_UDP/response"
 )
 
-type Client struct {
+type Conn struct {
+	Host       string
 	conn       net.Conn
 	seq        int
-	fileSize   int64
-	fileName   string
-	folder     string
-	newFile    *os.File
+	//fileSize   int64
+	//fileName   string
+	//folder     string
+	//newFile    *os.File
 	//Fin        bool
 	//received   int
 	sndBuff []byte
@@ -29,18 +29,19 @@ type Client struct {
 	ack     chan int
 }
 
-func New(folder string) Client {
-	return Client {
+func New(host string) Conn {
+	return Conn {
+		Host:host,
 		seq:        0,
-		folder:     folder,
+		//folder:     folder,
 		sndBuff:    make([]byte, 0),
 		rcvBuff:    make([]byte, 0),
 		ack:        make(chan int),
 	}
 }
 
-func (s *Server) Up() {
-	host := strings.Split(s.Host, ":")
+func (c *Conn) Up() {
+	host := strings.Split(c.Host, ":")
 	ip := host[0]
 	port, err := strconv.Atoi(host[1])
 	if err != nil {
@@ -63,28 +64,31 @@ func (s *Server) Up() {
 		return
 	}
 
-	s.conn = ser
+	c.conn = ser
 
-	m := make([]byte, 2048)
+	go c.write()
+	go c.read()
 
-	for {
-		_, remoteAddr, err := ser.ReadFromUDP(m)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		r := string(m)
-
-		fmt.Println(r)
-
-		req := request.Unmarshal(r)
-
-		s.protocol(req, remoteAddr)
-	}
+	//m := make([]byte, 2048)
+	//
+	//for {
+	//	_, remoteAddr, err := ser.ReadFromUDP(m)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return
+	//	}
+	//
+	//	r := string(m)
+	//
+	//	fmt.Println(r)
+	//
+	//	req := request.Unmarshal(r)
+	//
+	//	s.protocol(req, remoteAddr)
+	//}
 }
 
-func (c *Client) Connect(addr chan string) {
+func (c *Conn) Connect(addr chan string) {
 	for {
 		cli, err := net.Dial("udp4", <-addr)
 		if err != nil {
@@ -106,7 +110,7 @@ func (c *Client) Connect(addr chan string) {
 	}
 }
 
-func (c *Client) Send(message []byte) {
+func (c *Conn) Send(message []byte) {
 	c.sndLock.Lock()
 
 	c.sndBuff = append(c.sndBuff, message...)
@@ -114,7 +118,7 @@ func (c *Client) Send(message []byte) {
 	c.sndLock.Unlock()
 }
 
-func (c *Client) write() {
+func (c *Conn) write() {
 	ticker := time.NewTicker(5 * time.Second)
 
 	for {
@@ -145,7 +149,7 @@ func (c *Client) write() {
 	}
 }
 
-func (c *Client) Read(p []byte) (n int, err error) {
+func (c *Conn) Read(p []byte) (n int, err error) {
 	min := len(p)
 	if len(c.rcvBuff) < min {
 		min = len(c.rcvBuff)
@@ -163,7 +167,7 @@ func (c *Client) Read(p []byte) (n int, err error) {
 	return min, nil
 }
 
-func (c *Client) read() {
+func (c *Conn) read() {
 	m := make([]byte, 4096)
 
 	for {
@@ -185,7 +189,7 @@ func (c *Client) read() {
 	}
 }
 
-func (c *Client) protocol(res response.Response) {
+func (c *Conn) protocol(res response.Response) {
 	switch t := res.(type) {
 	case *response.Data:
 		c.rcvLock.Lock()
@@ -246,14 +250,14 @@ func (c *Client) protocol(res response.Response) {
 	}
 }
 
-func (c *Client) sendAck(seq int) {
+func (c *Conn) sendAck(seq int) {
 	_, err := c.conn.Write([]byte((&request.Acknowledgment{Seq: seq}).Marshal()))
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
-func (c *Client) alternateSeq(seq int) {
+func (c *Conn) alternateSeq(seq int) {
 	if seq == c.seq {
 		c.seq++
 		c.seq %= 2

@@ -110,7 +110,7 @@ func (s *Server) protocol(req request.Request, remoteAddr *net.UDPAddr) {
 }
 
 func (s *Server) send(name string, remoteAddr *net.UDPAddr) {
-	fmt.Println("A gbn client has connected!")
+	fmt.Println("A gbn cli has connected!")
 
 	file, err := os.Open(s.folder + "/" + name)
 	if err != nil {
