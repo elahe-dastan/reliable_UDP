@@ -20,11 +20,13 @@ type Client struct {
 	fileName   string
 	folder     string
 	newFile    *os.File
-	Fin        bool
-	received   int
-	sndBuff   []byte
-	rcvBuff   []byte
-	sndLock   sync.Mutex
+	//Fin        bool
+	//received   int
+	sndBuff []byte
+	rcvBuff []byte
+	sndLock sync.Mutex
+	rcvLock sync.Mutex
+	ack     chan int
 }
 
 func New(folder string) Client {
@@ -33,6 +35,7 @@ func New(folder string) Client {
 		folder:     folder,
 		sndBuff:    make([]byte, 0),
 		rcvBuff:    make([]byte, 0),
+		ack:        make(chan int),
 	}
 }
 
@@ -53,31 +56,8 @@ func (c *Client) Connect(addr chan string) {
 
 		fmt.Printf("The UDP server is %s\n", cli.RemoteAddr().String())
 
-		m := make([]byte, 2048)
-
-		c.Fin = false
-		c.received = 0
-
-		for {
-			if c.Fin {
-				break
-			}
-			_, err := cli.Read(m)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			r := strings.Split(string(m), "\n")[0]
-
-			r = strings.TrimSuffix(r, "\n")
-
-			fmt.Println(r)
-
-			res := response.Unmarshal(r)
-
-			c.protocol(res)
-		}
+		go c.write()
+		go c.read()
 	}
 }
 
@@ -90,34 +70,86 @@ func (c *Client) Send(message []byte) {
 }
 
 func (c *Client) write() {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 
 	for {
-		<-ticker.C
-		c.sndLock.Lock()
+		s := make([]byte, 0)
+		select {
+		case <-ticker.C:
+			c.sndLock.Lock()
 
-		s := c.sndBuff
-		if len(s) > 2048 {
-			s = s[:2048]
-			c.sndBuff = c.sndBuff[2048:]
+			s = c.sndBuff
+			if len(s) > 2048 {
+				s = s[:2048]
+			}
+
+			c.sndLock.Unlock()
+
+			d := response.Data {
+				Data: s,
+				Seq:  c.seq,
+			}
+
+			_, err := c.conn.Write([]byte(d.Marshal()))
+			if err != nil {
+				fmt.Println(err)
+			}
+		case <-c.ack:
+			c.sndBuff = c.sndBuff[len(s):]
 		}
+	}
+}
 
-		c.sndLock.Unlock()
+func (c *Client) Receive() []byte {
+	c.rcvLock.Lock()
 
-		d := response.Data {
-			Data: s,
-			Seq:  c.seq,
-		}
+	d := c.rcvBuff
+	if len(d) > 2048 {
+		d = d[:2048]
+	}
 
-		_, err := c.conn.Write([]byte(d.Marshal()))
+	c.rcvBuff = c.rcvBuff[len(d):]
+
+	c.rcvLock.Unlock()
+
+	return d
+}
+
+func (c *Client) read() {
+	m := make([]byte, 4096)
+
+	for {
+		_, err := c.conn.Read(m)
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
+
+		r := strings.Split(string(m), "\n")[0]
+
+		r = strings.TrimSuffix(r, "\n")
+
+		fmt.Println(r)
+
+		res := response.Unmarshal(r)
+
+		c.protocol(res)
 	}
 }
 
 func (c *Client) protocol(res response.Response) {
 	switch t := res.(type) {
+	case *response.Data:
+		c.rcvLock.Lock()
+
+		c.rcvBuff = append(c.rcvBuff, t.Data...)
+
+		c.rcvLock.Unlock()
+	case *response.Ack:
+		if c.seq == t.Seq {
+			c.ack <- c.seq
+			c.seq++
+		}
 	case *response.Size:
 		fmt.Println("received size the seq is")
 		fmt.Println(t.Seq)

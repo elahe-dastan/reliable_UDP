@@ -18,6 +18,10 @@ type Data struct {
 	Seq  int
 }
 
+type Ack struct {
+	Seq int
+}
+
 type Size struct {
 	Size int64
 	Seq  int
@@ -35,6 +39,10 @@ type Segment struct {
 
 func (d *Data) Marshal() string {
 	return fmt.Sprintf("%s,%d,%s", message.Data, d.Seq, base64.StdEncoding.EncodeToString(d.Data))
+}
+
+func (a *Ack) Marshal() string {
+	return fmt.Sprintf("%s,%d", message.Ack, a.Seq)
 }
 
 func (s *Size) Marshal() string {
@@ -59,6 +67,14 @@ func Unmarshal(s string) Response {
 	t := strings.Split(s, ",")
 
 	switch t[0] {
+	case message.Data:
+		seq, _ := strconv.Atoi(t[1])
+		data := t[2]
+
+		return &Data{
+			Data: []byte(data),
+			Seq:  seq,
+		}
 	case message.Size:
 		seq, _ := strconv.Atoi(t[1])
 		size, _ := strconv.Atoi(t[2])
