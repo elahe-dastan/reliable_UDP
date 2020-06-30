@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -148,57 +147,56 @@ func (c *Client) protocol(res response.Response) {
 		c.rcvBuff = append(c.rcvBuff, t.Data...)
 
 		c.rcvLock.Unlock()
+
+		go c.sendAck(t.Seq)
 	case *response.Ack:
-		if c.seq == t.Seq {
-			c.ack <- c.seq
-			c.seq++
-		}
-	case *response.Size:
-		fmt.Println("received size the seq is")
-		fmt.Println(t.Seq)
-
-		if c.alternateSeq(t.Seq) {
-			c.fileSize = t.Size
-		}
-
-		go c.sendAck(t.Seq)
-
-	case *response.FileName:
-		fmt.Println("received file name the seq is")
-		fmt.Println(t.Seq)
-
-		if c.alternateSeq(t.Seq) {
-			c.fileName = t.Name
-
-			newFile, err := os.Create(filepath.Join(c.folder, filepath.Base("yep"+c.fileName)))
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			c.newFile = newFile
-		}
-
-		go c.sendAck(t.Seq)
-
-	case *response.Segment:
-		fmt.Println("received segment the seq is")
-		fmt.Println(t.Seq)
-
-		if c.alternateSeq(t.Seq) {
-			segment := t.Part
-
-			received, err := c.newFile.Write(segment)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			c.received += received
-			if int64(c.received) == c.fileSize {
-				c.Fin = true
-			}
-		}
-
-		go c.sendAck(t.Seq)
+		c.alternateSeq(t.Seq)
+	//case *response.Size:
+	//	fmt.Println("received size the seq is")
+	//	fmt.Println(t.Seq)
+	//
+	//	if c.alternateSeq(t.Seq) {
+	//		c.fileSize = t.Size
+	//	}
+	//
+	//	go c.sendAck(t.Seq)
+	//
+	//case *response.FileName:
+	//	fmt.Println("received file name the seq is")
+	//	fmt.Println(t.Seq)
+	//
+	//	if c.alternateSeq(t.Seq) {
+	//		c.fileName = t.Name
+	//
+	//		newFile, err := os.Create(filepath.Join(c.folder, filepath.Base("yep"+c.fileName)))
+	//		if err != nil {
+	//			fmt.Println(err)
+	//		}
+	//
+	//		c.newFile = newFile
+	//	}
+	//
+	//	go c.sendAck(t.Seq)
+	//
+	//case *response.Segment:
+	//	fmt.Println("received segment the seq is")
+	//	fmt.Println(t.Seq)
+	//
+	//	if c.alternateSeq(t.Seq) {
+	//		segment := t.Part
+	//
+	//		received, err := c.newFile.Write(segment)
+	//		if err != nil {
+	//			fmt.Println(err)
+	//		}
+	//
+	//		c.received += received
+	//		if int64(c.received) == c.fileSize {
+	//			c.Fin = true
+	//		}
+	//	}
+	//
+	//	go c.sendAck(t.Seq)
 	}
 }
 
@@ -209,13 +207,9 @@ func (c *Client) sendAck(seq int) {
 	}
 }
 
-func (c *Client) alternateSeq(seq int) bool {
+func (c *Client) alternateSeq(seq int) {
 	if seq == c.seq {
 		c.seq++
 		c.seq %= 2
-
-		return true
 	}
-
-	return false
 }

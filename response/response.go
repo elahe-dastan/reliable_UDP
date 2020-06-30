@@ -75,31 +75,31 @@ func Unmarshal(s string) Response {
 			Data: []byte(data),
 			Seq:  seq,
 		}
-	case message.Size:
-		seq, _ := strconv.Atoi(t[1])
-		size, _ := strconv.Atoi(t[2])
-		size64 := int64(size)
-
-		return &Size{
-			Size: size64,
-			Seq:  seq,
-		}
-	case message.FileName:
-		seq, _ := strconv.Atoi(t[1])
-		name := t[2]
-
-		return &FileName{
-			Name: name,
-			Seq:  seq,
-		}
-	case message.Segment:
-		seq, _ := strconv.Atoi(t[1])
-		part, _ := base64.StdEncoding.DecodeString(t[2])
-
-		return &Segment{
-			Part: part,
-			Seq:  seq,
-		}
+	//case message.Size:
+	//	seq, _ := strconv.Atoi(t[1])
+	//	size, _ := strconv.Atoi(t[2])
+	//	size64 := int64(size)
+	//
+	//	return &Size{
+	//		Size: size64,
+	//		Seq:  seq,
+	//	}
+	//case message.FileName:
+	//	seq, _ := strconv.Atoi(t[1])
+	//	name := t[2]
+	//
+	//	return &FileName{
+	//		Name: name,
+	//		Seq:  seq,
+	//	}
+	//case message.Segment:
+	//	seq, _ := strconv.Atoi(t[1])
+	//	part, _ := base64.StdEncoding.DecodeString(t[2])
+	//
+	//	return &Segment{
+	//		Part: part,
+	//		Seq:  seq,
+	//	}
 	}
 
 	return nil
