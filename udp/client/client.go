@@ -100,19 +100,22 @@ func (c *Client) write() {
 	}
 }
 
-func (c *Client) Receive() []byte {
+func (c *Client) Read(p []byte) (n int, err error) {
+	min := len(p)
+	if len(c.rcvBuff) < min {
+		min = len(c.rcvBuff)
+	}
+
 	c.rcvLock.Lock()
 
 	d := c.rcvBuff
-	if len(d) > 2048 {
-		d = d[:2048]
-	}
+	d = d[:min]
 
-	c.rcvBuff = c.rcvBuff[len(d):]
+	c.rcvBuff = c.rcvBuff[min:]
 
 	c.rcvLock.Unlock()
 
-	return d
+	return min, nil
 }
 
 func (c *Client) read() {
