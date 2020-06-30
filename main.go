@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/elahe-dastan/reliable_UDP/sr/client"
-	"github.com/elahe-dastan/reliable_UDP/sr/server"
+	"github.com/elahe-dastan/reliable_UDP/gbn/client"
+	"github.com/elahe-dastan/reliable_UDP/gbn/server"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 		addr := make(chan string, 1)
 		name := make(chan string)
 		go c.Connect(addr, name)
-		addr <- "127.0.0.1:1995"
+		addr <- "127.0.0.1:34601"
 		name <- "thesis.pdf"
 		select {}
 	} else {

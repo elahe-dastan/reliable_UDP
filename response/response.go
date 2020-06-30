@@ -13,6 +13,11 @@ type Response interface {
 	Marshal() string
 }
 
+type Data struct {
+	Data []byte
+	Seq  int
+}
+
 type Size struct {
 	Size int64
 	Seq  int
@@ -26,6 +31,10 @@ type FileName struct {
 type Segment struct {
 	Part []byte
 	Seq  int
+}
+
+func (d *Data) Marshal() string {
+	return fmt.Sprintf("%s,%d,%s", message.Data, d.Seq, base64.StdEncoding.EncodeToString(d.Data))
 }
 
 func (s *Size) Marshal() string {
