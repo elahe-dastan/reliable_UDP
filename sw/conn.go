@@ -1,7 +1,8 @@
-package conn
+package sw
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -13,15 +14,9 @@ import (
 )
 
 type Conn struct {
-	Host       string
-	conn       net.Conn
-	seq        int
-	//fileSize   int64
-	//fileName   string
-	//folder     string
-	//newFile    *os.File
-	//Fin        bool
-	//received   int
+	Host    string
+	conn    net.Conn
+	seq     int
 	sndBuff []byte
 	rcvBuff []byte
 	sndLock sync.Mutex
@@ -30,13 +25,12 @@ type Conn struct {
 }
 
 func New(host string) Conn {
-	return Conn {
-		Host:host,
-		seq:        0,
-		//folder:     folder,
-		sndBuff:    make([]byte, 0),
-		rcvBuff:    make([]byte, 0),
-		ack:        make(chan int),
+	return Conn{
+		Host:    host,
+		seq:     0,
+		sndBuff: make([]byte, 0),
+		rcvBuff: make([]byte, 0),
+		ack:     make(chan int),
 	}
 }
 
@@ -68,24 +62,6 @@ func (c *Conn) Up() {
 
 	go c.write()
 	go c.read()
-
-	//m := make([]byte, 2048)
-	//
-	//for {
-	//	_, remoteAddr, err := ser.ReadFromUDP(m)
-	//	if err != nil {
-	//		fmt.Println(err)
-	//		return
-	//	}
-	//
-	//	r := string(m)
-	//
-	//	fmt.Println(r)
-	//
-	//	req := request.Unmarshal(r)
-	//
-	//	s.protocol(req, remoteAddr)
-	//}
 }
 
 func (c *Conn) Connect(addr chan string) {
@@ -97,11 +73,6 @@ func (c *Conn) Connect(addr chan string) {
 		}
 
 		c.conn = cli
-
-		//_, err = cli.Write([]byte((&request.Get{Name: <-name}).Marshal()))
-		//if err != nil {
-		//	fmt.Println(err)
-		//}
 
 		fmt.Printf("The UDP server is %s\n", cli.RemoteAddr().String())
 
@@ -134,14 +105,18 @@ func (c *Conn) write() {
 
 			c.sndLock.Unlock()
 
-			d := response.Data {
+			d := response.Data{
 				Data: s,
 				Seq:  c.seq,
 			}
 
+			if len(s) == 0 {
+				continue
+			}
+
 			_, err := c.conn.Write([]byte(d.Marshal()))
 			if err != nil {
-				fmt.Println(err)
+				log.Fatal(err)
 			}
 		case <-c.ack:
 			c.sndBuff = c.sndBuff[len(s):]
@@ -171,10 +146,14 @@ func (c *Conn) read() {
 	m := make([]byte, 4096)
 
 	for {
-		_, err := c.conn.Read(m)
+		n, err := c.conn.Read(m)
 		if err != nil {
 			fmt.Println(err)
 			return
+		}
+
+		if n == 0 {
+			continue
 		}
 
 		r := strings.Split(string(m), "\n")[0]
@@ -201,59 +180,13 @@ func (c *Conn) protocol(res response.Response) {
 		go c.sendAck(t.Seq)
 	case *response.Ack:
 		c.alternateSeq(t.Seq)
-	//case *response.Size:
-	//	fmt.Println("received size the seq is")
-	//	fmt.Println(t.Seq)
-	//
-	//	if c.alternateSeq(t.Seq) {
-	//		c.fileSize = t.Size
-	//	}
-	//
-	//	go c.sendAck(t.Seq)
-	//
-	//case *response.FileName:
-	//	fmt.Println("received file name the seq is")
-	//	fmt.Println(t.Seq)
-	//
-	//	if c.alternateSeq(t.Seq) {
-	//		c.fileName = t.Name
-	//
-	//		newFile, err := os.Create(filepath.Join(c.folder, filepath.Base("yep"+c.fileName)))
-	//		if err != nil {
-	//			fmt.Println(err)
-	//		}
-	//
-	//		c.newFile = newFile
-	//	}
-	//
-	//	go c.sendAck(t.Seq)
-	//
-	//case *response.Segment:
-	//	fmt.Println("received segment the seq is")
-	//	fmt.Println(t.Seq)
-	//
-	//	if c.alternateSeq(t.Seq) {
-	//		segment := t.Part
-	//
-	//		received, err := c.newFile.Write(segment)
-	//		if err != nil {
-	//			fmt.Println(err)
-	//		}
-	//
-	//		c.received += received
-	//		if int64(c.received) == c.fileSize {
-	//			c.Fin = true
-	//		}
-	//	}
-	//
-	//	go c.sendAck(t.Seq)
 	}
 }
 
 func (c *Conn) sendAck(seq int) {
 	_, err := c.conn.Write([]byte((&request.Acknowledgment{Seq: seq}).Marshal()))
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 }
 

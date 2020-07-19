@@ -64,12 +64,12 @@ func (s *Server) Up() {
 		Port: port,
 	}
 
-	_, err = net.ResolveUDPAddr("udp", addr.String())
+	_, err = net.ResolveUDPAddr("sw", addr.String())
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	ser, err := net.ListenUDP("udp", &addr)
+	ser, err := net.ListenUDP("sw", &addr)
 	if err != nil {
 		fmt.Println(err)
 		return

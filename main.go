@@ -7,8 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/elahe-dastan/reliable_UDP/gbn/client"
-	"github.com/elahe-dastan/reliable_UDP/gbn/server"
+	"github.com/elahe-dastan/reliable_UDP/sw"
 )
 
 func main() {
@@ -27,16 +26,16 @@ func main() {
 	}
 
 	if a == 1 {
-		c := client.New( "/home/raha/Downloads")
+		c := sw.New( "127.0.0.1:1999")
 		addr := make(chan string, 1)
-		name := make(chan string)
-		go c.Connect(addr, name)
-		addr <- "127.0.0.1:34601"
-		name <- "thesis.pdf"
+		go c.Connect(addr)
+		addr <- "127.0.0.1:1995"
+		c.Send([]byte("Hi, my name is raha"))
 		select {}
 	} else {
-		s := server.New("127.0.0.1:1995", "/home/raha/Downloads")
+		s := sw.New("127.0.0.1:1995")
 		s.Up()
+		select {}
 	}
 }
 
